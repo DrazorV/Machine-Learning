@@ -1,78 +1,101 @@
-import java.io.FileNotFoundException;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 
-public class NaiveBayes {
-    //token occurrency tables
-    private EmailDataset trainData;
-    private HashMap<Integer, Integer> spamOcurrTable;
-    private HashMap<Integer, Integer> hamOcurrTable;
-    private int spamTotalOcurr;
-    private int hamTotalOcurr;
+class NaiveBayes {
+    HashMap<String, Word> words = new HashMap<>();
+    int totalSpamCount = 0;
+    int totalHamCount = 0;
 
-
-    private HashMap<Integer, Double> spamProbTable;
-    private HashMap<Integer, Double> hamProbTable;
-
-    private double threshold; //classification threshold
-
-    private int dim;
-    private double spamProb;
-    private double hamProb;
-    private int sigTokens;
-
-
-    public NaiveBayes(String filename, double threshold, int sigTokens) throws FileNotFoundException {
-        //read and store the data
-        TFReader reader = new TFReader(filename);
-        EmailDataset data = reader.read();
-
-        //calculate the threshold
-        this.threshold= threshold;//threashold(filename);
-
-
-        initModel(data, sigTokens);
-
-    }
-
-    public NaiveBayes(EmailDataset trainData, double threshold, int sigTokens) throws FileNotFoundException{
-        this.threshold = threshold;
-        this.sigTokens = sigTokens;
-        initModel(trainData, sigTokens);
-
-    }
-
-    private void initModel(EmailDataset data, int sigTokens){
-
-        trainData = data;
-
-
-        dim=trainData.getDictionaryDim();
-
-        //get and init token dictionary tables
-
-        Pair<HashMap<Integer, Integer>> pair = trainData.getTotalTokenOcurr();
-        spamOcurrTable = pair.getFirst();
-        hamOcurrTable = pair.getSecont();
-        spamTotalOcurr = allTokenOcurr(spamOcurrTable);
-        hamTotalOcurr = allTokenOcurr(hamOcurrTable);
-
-
-        //init probability tables
-        spamProbTable = new HashMap<Integer, Double>();
-        hamProbTable = new HashMap<Integer, Double>();
-        tableTokenProb(); //fills the two previous tables
-
-
-
-        //init class prob
-        spamProb = getClassProb("spam");
-        hamProb = getClassProb("ham");
-
-        if(sigTokens != 0){//filter the sigTokens most significative tokens
-            filterSignificativeTokens(sigTokens);
-            initModel(trainData, 0);
+    void train(File directoryPath) throws IOException {
+        File[] files = directoryPath.listFiles((dir, name) -> name.endsWith(".txt"));
+        if (files != null) {
+            for (File file : files) {
+                String type;
+                if (file.getName().contains("spmsga")) type = "spam";
+                else type = "ham";
+                BufferedReader in = new BufferedReader(new java.io.FileReader(file));
+                String line = in.readLine();
+                while (line != null) {
+                    if (!line.equals("")) {
+                        for (String word : line.split(" ")) {
+                            word = word.replaceAll("\\W", "");
+                            word = word.toLowerCase();
+                            Word w;
+                            if (words.containsKey(word)) {
+                                w = words.get(word);
+                            } else {
+                                w = new Word(word);
+                                words.put(word, w);
+                            }
+                            if (type.equals("ham")) {
+                                w.countHam();
+                                totalHamCount++;
+                            } else {
+                                w.countSpam();
+                                totalSpamCount++;
+                            }
+                        }
+                    }
+                    line = in.readLine();
+                }
+                in.close();
+            }
+        }else{
+            System.out.println("Something went wrong. Please check the path of the directory!");
         }
-
     }
 
+    void test(File directoryPath) throws IOException{
+        BufferedWriter out = new BufferedWriter(new FileWriter("predictions.txt"));
+        File[] files = directoryPath.listFiles((dir, name) -> name.endsWith(".txt"));
+        if (files != null) {
+            for (File file : files) {
+                ArrayList<Word> msg = makeWordList(file);
+                boolean isSpam = calculateBayes(msg);
+                if (isSpam) out.write(file.getName()+" spam");
+                else out.write(file.getName()+" ham");
+                out.newLine();
+            }
+            out.close();
+        }
+    }
+
+
+    private static boolean calculateBayes(ArrayList<Word> msg){
+        float probabilityOfPositiveProduct = 1.0f;
+        float probabilityOfNegativeProduct = 1.0f;
+        for (Word word : msg) {
+            probabilityOfPositiveProduct *= word.getProbOfSpam();
+            probabilityOfNegativeProduct *= (1.0f - word.getProbOfSpam());
+        }
+        float probOfSpam = probabilityOfPositiveProduct / (probabilityOfPositiveProduct + probabilityOfNegativeProduct);
+        return probOfSpam > 0.9f;
+    }
+
+
+    private ArrayList<Word> makeWordList(File file) throws IOException {
+        BufferedReader in = new BufferedReader(new java.io.FileReader(file));
+        String line = in.readLine();
+        ArrayList<Word> wordList = new ArrayList<>();
+        while (line != null) {
+            if (!line.equals("")) {
+                for (String word : line.split(" ")) {
+                    word = word.replaceAll("\\W", "");
+                    word = word.toLowerCase();
+                    Word w;
+                    if (words.containsKey(word)) {
+                        w = words.get(word);
+                    } else {
+                        w = new Word(word);
+                        w.setProbOfSpam(totalSpamCount/(float)(totalHamCount+totalSpamCount));
+                    }
+                    wordList.add(w);
+                }
+            }
+            line = in.readLine();
+        }
+        in.close();
+        return wordList;
+    }
 }
