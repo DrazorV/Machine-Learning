@@ -7,8 +7,8 @@ class NaiveBayes {
     int totalSpamCount = 0;
     int totalHamCount = 0;
 
-    void train(File directoryPath) throws IOException {
-        File[] files = directoryPath.listFiles((dir, name) -> name.endsWith(".txt"));
+    void train(File folder) throws IOException {
+        File[] files = folder.listFiles((dir, name) -> name.endsWith(".txt"));
         if (files != null) {
             for (File file : files) {
                 String type;
@@ -65,12 +65,16 @@ class NaiveBayes {
     private static boolean calculateBayes(ArrayList<Word> msg){
         float probabilityOfPositiveProduct = 1.0f;
         float probabilityOfNegativeProduct = 1.0f;
+        float temp = 0.0f;
         for (Word word : msg) {
-            probabilityOfPositiveProduct *= word.getProbOfSpam();
-            probabilityOfNegativeProduct *= (1.0f - word.getProbOfSpam());
+//          probabilityOfPositiveProduct *= word.getProbOfSpam();
+//          probabilityOfNegativeProduct *= (1.0f - word.getProbOfSpam());
+            temp += word.getProbOfSpam();
         }
-        float probOfSpam = probabilityOfPositiveProduct / (probabilityOfPositiveProduct + probabilityOfNegativeProduct);
-        return probOfSpam > 0.9f;
+        float probOfSpam = temp/msg.size();
+        //System.out.println(probOfSpam);
+        //float probOfSpam = probabilityOfPositiveProduct / (probabilityOfPositiveProduct + probabilityOfNegativeProduct);
+        return probOfSpam > 0.5f;
     }
 
 
@@ -88,7 +92,7 @@ class NaiveBayes {
                         w = words.get(word);
                     } else {
                         w = new Word(word);
-                        w.setProbOfSpam(totalSpamCount/(float)(totalHamCount+totalSpamCount));
+                        w.setProbOfSpam(0.4f);
                     }
                     wordList.add(w);
                 }
