@@ -1,4 +1,5 @@
 public class Word {
+    private double result;
     private String word;	//the word itself
     private int spamCount;	//number of this words appearances in spam messages
     private int hamCount;	//number of this words appearances in ham messages
@@ -40,20 +41,12 @@ public class Word {
         }
     }
 
-    public String getWord() {
-        return word;
+    int getSpamCount(){
+        return  spamCount;
     }
 
-    public float getSpamRate() {
-        return spamRate;
-    }
-
-    public float getHamRate() {
-        return hamRate;
-    }
-
-    public void setHamRate(float hamRate) {
-        this.hamRate = hamRate;
+    int getHamCount(){
+        return  hamCount;
     }
 
     float getProbOfSpam() {
@@ -62,5 +55,21 @@ public class Word {
 
     void setProbOfSpam(float probOfSpam) {
         this.probOfSpam = probOfSpam;
+    }
+
+    void setResult(double result) {
+        this.result = result;
+    }
+
+    double getResult(){
+        return this.result;
+    }
+
+    public String getWord() {
+        return word;
+    }
+
+    public void setWord(String word) {
+        this.word = word;
     }
 }

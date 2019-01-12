@@ -7,13 +7,19 @@ class NaiveBayes {
     int totalSpamCount = 0;
     int totalHamCount = 0;
 
-    void train(File folder) throws IOException {
-        File[] files = folder.listFiles((dir, name) -> name.endsWith(".txt"));
+    void train(File directoryPath) throws IOException {
+        File[] files = directoryPath.listFiles((dir, name) -> name.endsWith(".txt"));
         if (files != null) {
             for (File file : files) {
                 String type;
-                if (file.getName().contains("spmsga")) type = "spam";
-                else type = "ham";
+                if (file.getName().contains("spmsga")){
+                    type = "spam";
+                    totalSpamCount++;
+                }
+                else{
+                    type = "ham";
+                    totalHamCount++;
+                }
                 BufferedReader in = new BufferedReader(new java.io.FileReader(file));
                 String line = in.readLine();
                 while (line != null) {
@@ -30,10 +36,9 @@ class NaiveBayes {
                             }
                             if (type.equals("ham")) {
                                 w.countHam();
-                                totalHamCount++;
+
                             } else {
                                 w.countSpam();
-                                totalSpamCount++;
                             }
                         }
                     }
@@ -47,7 +52,7 @@ class NaiveBayes {
     }
 
     void test(File directoryPath) throws IOException{
-        BufferedWriter out = new BufferedWriter(new FileWriter("predictions.txt"));
+        BufferedWriter out = new BufferedWriter(new FileWriter("BayesPredictions.txt"));
         File[] files = directoryPath.listFiles((dir, name) -> name.endsWith(".txt"));
         if (files != null) {
             for (File file : files) {
@@ -62,19 +67,23 @@ class NaiveBayes {
     }
 
 
-    private static boolean calculateBayes(ArrayList<Word> msg){
-        float probabilityOfPositiveProduct = 1.0f;
-        float probabilityOfNegativeProduct = 1.0f;
-        float temp = 0.0f;
+    private boolean calculateBayes(ArrayList<Word> msg){
+        int total= totalHamCount + totalSpamCount;
+        float p_ham = totalHamCount / (float) total;
+
+        float p_spam = totalSpamCount/ (float) total;
+        float probabilityOfPositiveProduct = 0.0f;
+        float probabilityOfNegativeProduct = 0.0f;
         for (Word word : msg) {
-//          probabilityOfPositiveProduct *= word.getProbOfSpam();
-//          probabilityOfNegativeProduct *= (1.0f - word.getProbOfSpam());
-            temp += word.getProbOfSpam();
+
+            probabilityOfPositiveProduct += Math.log(word.getProbOfSpam()  );
+            probabilityOfNegativeProduct += Math.log(1 - word.getProbOfSpam() );
         }
-        float probOfSpam = temp/msg.size();
-        //System.out.println(probOfSpam);
-        //float probOfSpam = probabilityOfPositiveProduct / (probabilityOfPositiveProduct + probabilityOfNegativeProduct);
-        return probOfSpam > 0.5f;
+
+        probabilityOfPositiveProduct = Math.abs((float) (probabilityOfPositiveProduct + Math.log(p_ham)));
+        probabilityOfNegativeProduct = Math.abs((float) (probabilityOfNegativeProduct + Math.log(p_spam)));
+
+        return probabilityOfNegativeProduct > probabilityOfPositiveProduct ;
     }
 
 
